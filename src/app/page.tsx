@@ -1,65 +1,204 @@
-import Image from "next/image";
+import { KpiCard } from '@/components/dashboard/KpiCard';
+import { OverviewCharts } from '@/components/dashboard/OverviewCharts';
+import { SectorCharts } from '@/components/dashboard/SectorCharts';
+import { PromotorRanking } from '@/components/dashboard/PromotorRanking';
+import { fetchSociosCanaco, fetchSociosSiem, fetchFinanzas } from '@/app/actions';
+import { Users, Briefcase, PlusCircle, TrendingUp, TrendingDown, DollarSign } from 'lucide-react';
+import { DataTable } from '@/components/shared/DataTable';
+import { ColumnDef } from '@tanstack/react-table';
+import { MovimientoFinanciero, Socio } from '@/types';
 
-export default function Home() {
+export const revalidate = 60; // Cache de 60 segundos
+
+export default async function Home() {
+  let canaco: Socio[] = [];
+  let siem: Socio[] = [];
+  let finanzas: MovimientoFinanciero[] = [];
+
+  try {
+    canaco = await fetchSociosCanaco();
+  } catch (e) {
+    console.warn("Fallo lectura CANACO", e);
+  }
+
+  try {
+    siem = await fetchSociosSiem();
+  } catch (e) {
+    console.warn("Fallo lectura SIEM", e);
+  }
+
+  try {
+    finanzas = await fetchFinanzas();
+  } catch (e) {
+    console.warn("Fallo lectura FINANZAS", e);
+  }
+
+  // Cálculos KPIs
+  const currentMonth = new Date().getMonth(); // 0-11
+  const prevMonth = currentMonth === 0 ? 11 : currentMonth - 1; // Manejo enero -> diciembre
+  const currentYear = new Date().getFullYear().toString();
+  const prevYear = currentMonth === 0 ? (new Date().getFullYear() - 1).toString() : currentYear;
+
+  const totalCanaco = canaco.length;
+  const totalSiem = siem.length;
+
+  const isCurrentMonthAndYear = (dateStr: string) => {
+    if (!dateStr) return false;
+    const date = new Date(dateStr.trim());
+    if (isNaN(date.getTime())) return false;
+    return date.getFullYear().toString() === currentYear && date.getMonth() === currentMonth;
+  };
+
+  const isCurrentYearAndMonthIndex = (dateStr: string, monthIndex: number) => {
+    if (!dateStr) return false;
+    const date = new Date(dateStr.trim());
+    if (isNaN(date.getTime())) return false;
+    return date.getFullYear().toString() === currentYear && date.getMonth() === monthIndex;
+  };
+
+  const isSpecificMonthAndYear = (dateStr: string, monthIndex: number, yearStr: string) => {
+    if (!dateStr) return false;
+    const date = new Date(dateStr.trim());
+    if (isNaN(date.getTime())) return false;
+    return date.getFullYear().toString() === yearStr && date.getMonth() === monthIndex;
+  };
+
+  const altasCanacoMes = canaco.filter(s => isCurrentMonthAndYear(s.FECHA_AFILIACION)).length;
+  const altasSiemMes = siem.filter(s => isCurrentMonthAndYear(s.FECHA_AFILIACION)).length;
+  const totalAltas = altasCanacoMes + altasSiemMes;
+
+  let ingresosMes = 0;
+  let egresosMes = 0;
+
+  finanzas.forEach(mov => {
+    if (isCurrentMonthAndYear(mov.FECHA)) {
+      const monto = parseFloat(mov.MONTO.replace(/[^0-9.-]+/g, "")) || 0;
+      if (mov.TIPO_MOVIMIENTO?.trim().toUpperCase() === 'INGRESO') {
+        ingresosMes += monto;
+      } else if (mov.TIPO_MOVIMIENTO?.trim().toUpperCase() === 'EGRESO') {
+        egresosMes += monto;
+      }
+    }
+  });
+
+  const balance = ingresosMes - egresosMes;
+
+  // Chart Data format
+  // Para las gráficas, agruparemos por mes del año actual.
+  const meses = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+
+  const financeData = meses.map((m, i) => {
+    let ing = 0; let eg = 0;
+    finanzas.forEach(mov => {
+      if (isCurrentYearAndMonthIndex(mov.FECHA, i)) {
+        const mVal = parseFloat(mov.MONTO.replace(/[^0-9.-]+/g, "")) || 0;
+        if (mov.TIPO_MOVIMIENTO?.trim().toUpperCase() === 'INGRESO') ing += mVal;
+        else if (mov.TIPO_MOVIMIENTO?.trim().toUpperCase() === 'EGRESO') eg += mVal;
+      }
+    });
+    return { name: m, ingresos: ing, egresos: eg };
+  });
+
+  const affiliateData = meses.map((m, i) => {
+    const c = canaco.filter(s => isCurrentYearAndMonthIndex(s.FECHA_AFILIACION, i)).length;
+    const s = siem.filter(s => isCurrentYearAndMonthIndex(s.FECHA_AFILIACION, i)).length;
+    return { name: m, CANACO: c, SIEM: s };
+  });
+
+  // Datos para rankings
+  const currentMonthPromotoresFunc = (s: Socio) => isCurrentMonthAndYear(s.FECHA_AFILIACION);
+  const prevMonthPromotoresFunc = (s: Socio) => isSpecificMonthAndYear(s.FECHA_AFILIACION, prevMonth, prevYear);
+
+  const currentMonthPromotoresData = [...canaco, ...siem]
+    .filter(currentMonthPromotoresFunc)
+    .map(s => ({ PROMOTOR: s.PROMOTOR, MONTO: s.IMPORTE }));
+
+  const previousMonthPromotoresData = [...canaco, ...siem]
+    .filter(prevMonthPromotoresFunc)
+    .map(s => ({ PROMOTOR: s.PROMOTOR, MONTO: s.IMPORTE }));
+
+  // Tablas resumidas
+  const ultimosMovimientos = [...finanzas].reverse().slice(0, 5);
+  const ultimosSocios = [...canaco, ...siem]
+    .filter(s => s.FECHA_AFILIACION)
+    .sort((a, b) => new Date(b.FECHA_AFILIACION).getTime() - new Date(a.FECHA_AFILIACION).getTime())
+    .slice(0, 5);
+
+  const formatMoney = (val: number) => new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(val);
+
+  const movCols: ColumnDef<MovimientoFinanciero>[] = [
+    { accessorKey: 'FECHA', header: 'Fecha' },
+    { accessorKey: 'CONCEPTO', header: 'Concepto' },
+    { accessorKey: 'TIPO_MOVIMIENTO', header: 'Tipo' },
+    { accessorKey: 'MONTO', header: 'Monto' }
+  ];
+
+  const socCols: ColumnDef<Socio>[] = [
+    { accessorKey: 'NOMBRE_DEL_NEGOCIO', header: 'Negocio' },
+    { accessorKey: 'FECHA_AFILIACION', header: 'Fecha' },
+    { accessorKey: 'MUNICIPIO', header: 'Municipio' },
+  ];
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
+    <div className="flex flex-col gap-6">
+      <div className="flex flex-col md:flex-row items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight text-slate-100">Executive Overview</h1>
+          <p className="text-slate-400">Resumen y estado general de la organización.</p>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+        <KpiCard title="Total CANACO" value={totalCanaco} icon={Users} />
+        <KpiCard title="Total SIEM" value={totalSiem} icon={Briefcase} />
+        <KpiCard
+          title="Altas del Mes"
+          value={totalAltas}
+          icon={PlusCircle}
+          trend={totalAltas > 0 ? 'up' : 'neutral'}
+          description="CANACO + SIEM"
         />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+        <KpiCard
+          title="Ingresos"
+          value={formatMoney(ingresosMes)}
+          icon={TrendingUp}
+          trend="up"
+        />
+        <KpiCard
+          title="Egresos"
+          value={formatMoney(egresosMes)}
+          icon={TrendingDown}
+          trend="down"
+        />
+        <KpiCard
+          title="Balance"
+          value={formatMoney(balance)}
+          icon={DollarSign}
+          trend={balance >= 0 ? 'up' : 'down'}
+        />
+      </div>
+
+      <OverviewCharts financeData={financeData} affiliateData={affiliateData} />
+
+      {/* Nuevas Gráficas de Pastel y Rankings Top */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
+        <SectorCharts canacoData={canaco} siemData={siem} />
+        <PromotorRanking
+          currentMonthData={currentMonthPromotoresData}
+          previousMonthData={previousMonthPromotoresData}
+        />
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
+        <div className="border border-slate-800 rounded-lg p-4 bg-slate-900/50">
+          <h3 className="text-lg font-medium text-slate-200 mb-4">Últimos Movimientos</h3>
+          <DataTable columns={movCols} data={ultimosMovimientos} searchPlaceholder="Buscar movimientos..." />
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+        <div className="border border-slate-800 rounded-lg p-4 bg-slate-900/50">
+          <h3 className="text-lg font-medium text-slate-200 mb-4">Nuevos Socios</h3>
+          <DataTable columns={socCols} data={ultimosSocios} searchPlaceholder="Buscar socios..." />
         </div>
-      </main>
+      </div>
     </div>
   );
 }
