@@ -44,12 +44,12 @@ export function SectorCharts({ canacoData, siemData }: SectorChartsProps) {
 
     return (
         <Card className="bg-slate-900 border-slate-800 h-full">
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-slate-200">Giros de Negocio</CardTitle>
-                <div className="flex gap-2 bg-slate-800 p-1 rounded-lg">
+            <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 sm:gap-0 pb-2">
+                <CardTitle className="text-slate-200 text-lg sm:text-xl">Giros de Negocio</CardTitle>
+                <div className="flex w-full sm:w-auto gap-2 bg-slate-800 p-1 rounded-lg">
                     <button
                         onClick={() => setActiveTab('CANACO')}
-                        className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${activeTab === 'CANACO'
+                        className={`flex-1 sm:flex-none px-3 py-1.5 sm:py-1 text-xs font-medium rounded-md transition-colors ${activeTab === 'CANACO'
                             ? 'bg-amber-500 text-white shadow-sm'
                             : 'text-slate-400 hover:text-slate-200'
                             }`}
@@ -58,7 +58,7 @@ export function SectorCharts({ canacoData, siemData }: SectorChartsProps) {
                     </button>
                     <button
                         onClick={() => setActiveTab('SIEM')}
-                        className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${activeTab === 'SIEM'
+                        className={`flex-1 sm:flex-none px-3 py-1.5 sm:py-1 text-xs font-medium rounded-md transition-colors ${activeTab === 'SIEM'
                             ? 'bg-blue-500 text-white shadow-sm'
                             : 'text-slate-400 hover:text-slate-200'
                             }`}

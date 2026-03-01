@@ -15,7 +15,7 @@ export function ClientLayout({ children, role }: { children: ReactNode; role?: s
     return (
         <>
             <Sidebar role={role} />
-            <main className="flex-1 md:ml-64 p-4 lg:p-8 overflow-x-hidden overflow-y-auto w-full md:w-[calc(100%-16rem)] min-h-screen flex flex-col">
+            <main className="flex-1 md:ml-64 p-4 lg:p-8 pt-4 pb-20 md:pb-8 overflow-x-hidden overflow-y-auto w-full md:w-[calc(100%-16rem)] min-h-[calc(100vh-4rem)] md:min-h-screen flex flex-col">
                 {children}
             </main>
         </>

@@ -134,8 +134,8 @@ export function DataTable<TData, TValue>({
                     </TableBody>
                 </Table>
             </div>
-            <div className="flex items-center justify-end space-x-2 py-4">
-                <div className="flex-1 text-sm text-slate-400">
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 py-4">
+                <div className="flex-1 text-sm text-slate-400 text-center sm:text-left w-full">
                     Mostrando {table.getRowModel().rows.length} de{' '}
                     {table.getFilteredRowModel().rows.length} registros.
                 </div>

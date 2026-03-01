@@ -38,14 +38,14 @@ export function FinanzasTable({ data }: FinanzasTableProps) {
 
     return (
         <div className="flex flex-col gap-6">
-            <div className="flex flex-col md:flex-row items-center gap-4 justify-between">
+            <div className="flex flex-col md:flex-row items-start md:items-center gap-4 justify-between">
                 <div>
                     <h1 className="text-3xl font-bold tracking-tight text-slate-100">Finanzas</h1>
                     <p className="text-slate-400">Control de ingresos y egresos.</p>
                 </div>
-                <div className="flex items-center gap-2">
-                    <Link href="/finanzas/nuevo">
-                        <Button className="bg-amber-600 hover:bg-amber-700 text-white">
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full md:w-auto">
+                    <Link href="/finanzas/nuevo" className="w-full sm:w-auto block">
+                        <Button className="bg-amber-600 hover:bg-amber-700 text-white w-full sm:w-auto">
                             <Plus className="w-4 h-4 mr-2" />
                             Nuevo Movimiento
                         </Button>
