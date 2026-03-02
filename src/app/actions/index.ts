@@ -20,8 +20,9 @@ export async function createSocioCanaco(socio: Socio, sheetId?: string) {
     const id = sheetId || DEFAULT_CANACO_SHEET_ID;
     if (!id) throw new Error("No Spreadsheet ID provided for CANACO.");
     await addCanacoDS(id, socio);
-    revalidatePath('/socios/canaco');
-    revalidatePath('/');
+
+    // Forzar revalidación de caché en todas partes
+    revalidatePath('/', 'layout');
 }
 
 // Siem Actions
@@ -35,8 +36,8 @@ export async function createSocioSiem(socio: Socio, sheetId?: string) {
     const id = sheetId || DEFAULT_SIEM_SHEET_ID;
     if (!id) throw new Error("No Spreadsheet ID provided for SIEM.");
     await addSiemDS(id, socio);
-    revalidatePath('/socios/siem');
-    revalidatePath('/');
+
+    revalidatePath('/', 'layout');
 }
 
 // Finanzas Actions
@@ -50,8 +51,8 @@ export async function createMovimiento(mov: MovimientoFinanciero, sheetId?: stri
     const id = sheetId || DEFAULT_FINANZAS_SHEET_ID;
     if (!id) throw new Error("No Spreadsheet ID provided for FINANZAS.");
     await addFinanzasDS(id, mov);
-    revalidatePath('/finanzas');
-    revalidatePath('/');
+
+    revalidatePath('/', 'layout');
 }
 
 import { getGoogleSheetsClient } from '@/lib/googleSheets';

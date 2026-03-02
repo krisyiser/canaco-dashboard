@@ -2,7 +2,7 @@ import { fetchSociosSiem } from '@/app/actions';
 import { SociosTable } from '@/components/socios/SociosTable';
 import { Socio } from '@/types';
 
-export const revalidate = 60;
+export const dynamic = 'force-dynamic';
 
 export default async function SiemPage() {
     let data: Socio[] = [];

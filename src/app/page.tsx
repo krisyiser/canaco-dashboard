@@ -8,7 +8,7 @@ import { DataTable } from '@/components/shared/DataTable';
 import { ColumnDef } from '@tanstack/react-table';
 import { MovimientoFinanciero, Socio } from '@/types';
 
-export const revalidate = 60; // Cache de 60 segundos
+export const dynamic = 'force-dynamic';
 
 export default async function Home() {
   let canaco: Socio[] = [];

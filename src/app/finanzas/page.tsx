@@ -2,7 +2,7 @@ import { fetchFinanzas } from '@/app/actions';
 import { FinanzasTable } from '@/components/finanzas/FinanzasTable';
 import { MovimientoFinanciero } from '@/types';
 
-export const revalidate = 60;
+export const dynamic = 'force-dynamic';
 
 export default async function FinanzasPage() {
     let data: MovimientoFinanciero[] = [];
